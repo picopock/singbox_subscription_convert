@@ -1,0 +1,94 @@
+use super::common::base::{
+    IpVersion, LogicalMode, Network, QueryType, SingleOrMultipleValue, Strategy,
+};
+use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
+
+#[skip_serializing_none]
+#[derive(Default, Serialize, Deserialize, Debug)]
+pub struct DNS {
+    servers: Vec<Server>,
+    rules: Vec<Rule>,
+    r#final: String,
+    strategy: Option<Strategy>,
+    disable_cache: Option<bool>,
+    disable_expire: Option<bool>,
+    independent_cache: Option<bool>,
+    reverse_mapping: Option<bool>,
+    client_subnet: Option<String>,
+    fakeip: Option<FackIp>,
+}
+
+#[skip_serializing_none]
+#[derive(Default, Serialize, Deserialize, Debug)]
+pub struct Server {
+    tag: String,
+    address: String,
+    address_resolver: Option<String>,
+    address_strategy: Option<Strategy>,
+    strategy: Option<Strategy>,
+    detour: Option<String>,
+    client_subnet: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Default, Serialize, Deserialize, Debug)]
+pub struct Rule {
+    inbound: Option<SingleOrMultipleValue>,
+    ip_version: Option<IpVersion>,
+    query_type: Option<Vec<QueryType>>,
+    network: Option<Network>,
+    auth_user: Option<SingleOrMultipleValue>,
+    protocol: Option<Vec<Protocol>>,
+    domain: Option<SingleOrMultipleValue>,
+    domain_suffix: Option<SingleOrMultipleValue>,
+    domain_keyword: Option<SingleOrMultipleValue>,
+    domain_regex: Option<SingleOrMultipleValue>,
+    source_ip_cidr: Option<SingleOrMultipleValue>,
+    source_ip_is_private: Option<bool>,
+    ip_cidr: Option<SingleOrMultipleValue>,
+    ip_is_private: Option<bool>,
+    source_port: Option<Vec<u16>>,
+    source_port_range: Option<SingleOrMultipleValue>,
+    port: Option<Vec<u16>>,
+    port_range: Option<SingleOrMultipleValue>,
+    process_name: Option<SingleOrMultipleValue>,
+    process_path: Option<SingleOrMultipleValue>,
+    package_name: Option<SingleOrMultipleValue>,
+    user: Option<SingleOrMultipleValue>,
+    user_id: Option<Vec<usize>>,
+    clash_mode: Option<String>,
+    wifi_ssid: Option<SingleOrMultipleValue>,
+    wifi_bssid: Option<SingleOrMultipleValue>,
+    rule_set: Option<SingleOrMultipleValue>,
+    rule_set_ip_cidr_match_source: Option<bool>,
+    rule_set_ip_cidr_accept_empty: Option<bool>,
+    invert: Option<bool>,
+    outbound: Option<SingleOrMultipleValue>,
+    server: Option<String>,
+    disable_cache: Option<bool>,
+    client_subnet: Option<String>,
+    r#type: Option<String>,
+    mode: Option<LogicalMode>,
+    rules: Option<Vec<Rule>>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Protocol {
+    Http,
+    Tls,
+    Quic,
+    Stun,
+    Dns,
+    Bittorrent,
+    Dtls,
+}
+
+#[skip_serializing_none]
+#[derive(Default, Serialize, Deserialize, Debug)]
+pub struct FackIp {
+    enabled: Option<bool>,
+    inet4_range: Option<String>,
+    inet6_range: Option<String>,
+}
