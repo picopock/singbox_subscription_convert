@@ -73,7 +73,3 @@ The first six configurations of outbounds are as follows：
   }
 ]
 ```
-
-## Download
-
-Wait ...
