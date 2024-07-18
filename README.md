@@ -4,6 +4,8 @@
 
 A tools for partially converting clash subscription to singbox config.
 
+> Note: Only support vmess protocol convert at now.
+
 ## Usage
 
 ```sh
@@ -73,7 +75,3 @@ The first six configurations of outbounds are as follows：
   }
 ]
 ```
-
-## Download
-
-Wait ...
