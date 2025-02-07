@@ -78,6 +78,7 @@ pub struct Rule {
     method: Option<String>,
     no_drop: Option<bool>,
     mode: Option<LogicalMode>,
+    strategy: Option<Strategy>,
     rules: Option<Vec<Rule>>,
 }
 
