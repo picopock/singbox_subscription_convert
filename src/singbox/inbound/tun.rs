@@ -7,8 +7,6 @@ use serde_with::skip_serializing_none;
 pub struct Tun {
     pub tag: String,
     pub address: Option<SingleOrMultipleValue>,
-    pub inet4_address: Option<SingleOrMultipleValue>,
-    pub inet6_address: Option<SingleOrMultipleValue>,
     pub interface_name: Option<String>,
     pub mtu: Option<usize>,
     pub gso: Option<bool>,

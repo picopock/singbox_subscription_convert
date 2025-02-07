@@ -1,9 +1,4 @@
-use crate::singbox::common::{
-    base::{Network, Strategy},
-    multiplex::Multiplex,
-    tls,
-    transport::Transport,
-};
+use crate::singbox::common::{base::Strategy, multiplex::Multiplex, tls, transport::Transport};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -13,8 +8,8 @@ pub struct Trojan {
     pub tag: String,
     pub server: String,
     pub server_port: u16,
-    pub password: String,
-    pub network: Option<Network>,
+    pub password: Option<String>,
+    pub network: Option<String>,
     pub tls: Option<tls::Outbound>,
     pub multiplex: Option<Multiplex>,
     pub transport: Option<Transport>,

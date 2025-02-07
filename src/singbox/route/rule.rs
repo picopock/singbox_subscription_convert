@@ -5,7 +5,8 @@ use serde_with::skip_serializing_none;
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Rule {
-    outbound: String,
+    action: String,
+    outbound: Option<String>,
     inbound: Option<SingleOrMultipleValue>,
     ip_version: Option<IpVersion>,
     auth_user: Option<SingleOrMultipleValue>,
@@ -35,4 +36,6 @@ pub struct Rule {
     rule_set_ip_cidr_match_source: Option<SingleOrMultipleValue>,
     invert: Option<SingleOrMultipleValue>,
     mode: Option<LogicalMode>,
+    method: Option<String>,
+    no_drop: Option<bool>,
 }

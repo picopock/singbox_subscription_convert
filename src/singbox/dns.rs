@@ -23,12 +23,18 @@ pub struct DNS {
 #[derive(Default, Serialize, Deserialize, Debug)]
 pub struct Server {
     tag: String,
-    address: String,
-    address_resolver: Option<String>,
-    address_strategy: Option<Strategy>,
-    strategy: Option<Strategy>,
+    r#type: String,
+    server: Option<String>,
+    responses: Option<Vec<Response>>,
+    domain_resolver: Option<String>,
     detour: Option<String>,
     client_subnet: Option<String>,
+}
+
+#[skip_serializing_none]
+#[derive(Default, Serialize, Deserialize, Debug)]
+pub struct Response {
+    rcode: String,
 }
 
 #[skip_serializing_none]
@@ -68,7 +74,9 @@ pub struct Rule {
     server: Option<String>,
     disable_cache: Option<bool>,
     client_subnet: Option<String>,
-    r#type: Option<String>,
+    action: String,
+    method: Option<String>,
+    no_drop: Option<bool>,
     mode: Option<LogicalMode>,
     rules: Option<Vec<Rule>>,
 }

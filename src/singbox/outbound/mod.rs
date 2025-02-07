@@ -1,5 +1,4 @@
 pub mod base;
-pub mod block;
 pub mod direct;
 pub mod dns;
 pub mod http;
@@ -24,7 +23,6 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Outbound {
     Direct(direct::Direct),
-    Block(block::Block),
     Socks(socks::Socks),
     Http(http::Http),
     Shadowsocks(shadowsocks::Shadowsocks),

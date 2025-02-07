@@ -8,57 +8,102 @@ pub const TEMPLATE: &str = r#"
     "servers": [
       {
         "tag": "ali",
-        "address": "https://223.5.5.5/dns-query",
-        "address_strategy": "ipv4_only",
-        "strategy": "ipv4_only",
+        "type": "https",
+        "server": "223.5.5.5",
         "detour": "DIRECT"
       },
       {
         "tag": "DNSPod",
-        "address": "https://120.53.53.53/dns-query",
-        "address_strategy": "ipv4_only",
-        "strategy": "ipv4_only",
+        "type": "https",
+        "server": "120.53.53.53",
         "detour": "DIRECT"
       },
       {
         "tag": "google",
-        "address": "https://8.8.8.8/dns-query",
-        "address_strategy": "ipv4_only",
-        "strategy": "ipv4_only",
+        "type": "https",
+        "server": "8.8.8.8",
         "detour": "🚀 节点选择"
       },
       {
         "tag": "cloudflare",
-        "address": "https://1.1.1.1/dns-query",
-        "address_strategy": "ipv4_only",
-        "strategy": "ipv4_only",
+        "type": "https",
+        "server": "1.1.1.1",
         "detour": "🚀 节点选择"
       },
       {
         "tag": "block",
-        "address": "rcode://success"
+        "type": "predefined",
+        "responses": [
+          {
+            "rcode": "NOERROR"
+          }
+        ]
       }
     ],
     "rules": [
       {
-        "outbound": [
-          "any"
+        "domain": [
+          "sh.picopock.com",
+          "gs.picopock.com",
+          "appstorrent.ru",
+          "kp.m-team.cc"
         ],
+        "domain_keyword": [
+          "m-team"
+        ],
+        "strategy": "ipv4_only",
+        "action": "route",
         "server": "ali"
       },
       {
+        "domain_suffix": [
+          "creaders.net"
+        ],
+        "domain_keyword": [
+          "mikrotik"
+        ],
+        "strategy": "ipv4_only",
+        "action": "route",
+        "server": "google"
+      },
+      {
         "clash_mode": "direct",
+        "strategy": "ipv4_only",
+        "action": "route",
         "server": "ali"
       },
       {
         "clash_mode": "global",
+        "strategy": "ipv4_only",
+        "action": "route",
         "server": "google"
       },
       {
-        "rule_set": [
-          "ads"
+        "rule_set": "ads",
+        "action": "reject",
+        "method": "default",
+        "no_drop": false
+      },
+      {
+        "domain": [
+          "jd.com",
+          "taobao.com",
+          "appstorrent.ru"
         ],
-        "server": "block"
+        "domain_suffix": [
+          "cdn.jiashule.com",
+          "cdn.jsdelivr.net",
+          "jsdelivr.map.fastly.net",
+          "adobe.com",
+          "jd.com",
+          "taobao.com"
+        ],
+        "domain_keyword": [
+          "adobe"
+        ],
+        "strategy": "ipv4_only",
+        "action": "route",
+        "server": "ali"
       },
       {
         "rule_set": [
@@ -69,6 +114,8 @@ pub const TEMPLATE: &str = r#"
           "cn",
           "private"
         ],
+        "strategy": "ipv4_only",
+        "action": "route",
         "server": "ali"
       },
       {
@@ -77,6 +124,8 @@ pub const TEMPLATE: &str = r#"
           "apple-cn",
           "proxy"
         ],
+        "strategy": "ipv4_only",
+        "action": "route",
         "server": "google"
       }
     ],
@@ -89,15 +138,15 @@ pub const TEMPLATE: &str = r#"
   },
   "inbounds": [
     {
-      "tag": "DNS-IN",
       "type": "direct",
+      "tag": "DNS-IN",
       "listen": "0.0.0.0",
       "listen_port": 53
     },
     {
       "type": "tun",
       "tag": "TUN-IN",
-      "inet4_address": [
+      "address": [
         "198.18.0.1/16"
       ],
       "auto_route": true,
@@ -107,16 +156,8 @@ pub const TEMPLATE: &str = r#"
   ],
   "outbounds": [
     {
-      "tag": "DNS-OUT",
-      "type": "dns"
-    },
-    {
       "tag": "DIRECT",
       "type": "direct"
-    },
-    {
-      "tag": "REJECT",
-      "type": "block"
     },
     {
       "tag": "🚀 节点选择",
@@ -147,32 +188,63 @@ pub const TEMPLATE: &str = r#"
     }
   ],
   "route": {
+    "default_domain_resolver": {
+      "server": "ali"
+    },
     "rules": [
       {
-        "inbound": [
-          "DNS-IN"
-        ],
-        "outbound": "DNS-OUT"
+        "action": "sniff"
       },
       {
-        "protocol": [
-          "dns"
+        "action": "hijack-dns",
+        "protocol": "dns"
+      },
+      {
+        "domain": [
+          "sh.picopock.com",
+          "gs.picopock.com",
+          "appstorrent.ru",
+          "kp.m-team.cc"
         ],
-        "outbound": "DNS-OUT"
+        "domain_suffix": [
+          "cdn.jiashule.com",
+          "xiaoliyu.cyou",
+          "xiaoliyu.xyz",
+          "jd.com",
+          "taobao.com",
+          "argotunnel.com"
+        ],
+        "domain_keyword": [
+          "m-team"
+        ],
+        "action": "route",
+        "outbound": "DIRECT"
+      },
+      {
+        "domain_suffix": [
+          "creaders.net"
+        ],
+        "domain_keyword": [
+          "mikrotik"
+        ],
+        "action": "route",
+        "outbound": "🚀 节点选择"
       },
       {
         "clash_mode": "global",
+        "action": "route",
         "outbound": "🚀 节点选择"
       },
       {
         "clash_mode": "direct",
+        "action": "route",
         "outbound": "DIRECT"
       },
       {
-        "rule_set": [
-          "ads"
-        ],
-        "outbound": "REJECT"
+        "rule_set": "ads",
+        "action": "reject",
+        "method": "default",
+        "no_drop": false
       },
       {
         "rule_set": [
@@ -185,12 +257,15 @@ pub const TEMPLATE: &str = r#"
           "private-ip",
           "private"
         ],
+        "action": "route",
         "outbound": "DIRECT"
       },
       {
         "domain_suffix": [
+          "v2ex.com",
           "docker.io"
         ],
+        "action": "route",
         "outbound": "🚀 节点选择"
       },
       {
@@ -200,6 +275,7 @@ pub const TEMPLATE: &str = r#"
           "proxy",
           "telegram-ip"
         ],
+        "action": "route",
         "outbound": "🚀 节点选择"
       }
     ],
@@ -321,6 +397,7 @@ pub const TEMPLATE: &str = r#"
       "external_ui": "ui",
       "external_ui_download_url": "https://github.com/MetaCubeX/Yacd-meta/archive/gh-pages.zip",
       "external_ui_download_detour": "🚀 节点选择",
+      "secret": "CUG_hb0015",
       "default_mode": "rule"
     }
   }

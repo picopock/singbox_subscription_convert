@@ -13,7 +13,7 @@ pub struct Vmess {
     pub tag: String,
     pub server: String,
     pub server_port: u16,
-    pub uuid: String,
+    pub uuid: Option<String>,
     pub security: Option<String>,
     pub alter_id: Option<usize>,
     pub global_padding: Option<bool>,
