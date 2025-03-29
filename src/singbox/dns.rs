@@ -8,7 +8,7 @@ use serde_with::skip_serializing_none;
 #[derive(Default, Serialize, Deserialize, Debug)]
 pub struct DNS {
     servers: Vec<Server>,
-    rules: Vec<Rule>,
+    rules: Option<Vec<Rule>>,
     r#final: String,
     strategy: Option<Strategy>,
     disable_cache: Option<bool>,

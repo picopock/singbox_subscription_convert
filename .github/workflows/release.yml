@@ -1,30 +1,133 @@
-on:
-  release:
-    types: [created]
+name: Rust Build, Test and Release
 
-permissions:
-  contents: write
+on:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
-  release:
-    name: release ${{ matrix.target }}
-    runs-on: ubuntu-latest
+  build:
+    name: Build on ${{ matrix.os }} - ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false
       matrix:
         include:
-          # - target: x86_64-pc-windows-gnu
-          #   archive: zip
-          - target: x86_64-unknown-linux-musl
-            archive: tar.gz tar.xz tar.zst
-          # - target: x86_64-apple-darwin
-          #   archive: zip
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          # - os: ubuntu-latest
+          #   target: aarch64-unknown-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+
     steps:
-      - uses: actions/checkout@master
-      - name: Compile and release
-        uses: rust-build/rust-build.action@v1.4.5
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+          sudo apt-get install -y libssl-dev
+          if [ "${{ matrix.target }}" == "aarch64-unknown-linux-gnu" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+            sudo apt-get install -y g++-aarch64-linux-gnu
+            sudo apt-get install -y libc6-dev-arm64-cross
+          fi
+
+      - name: Set up Rust
+        run: |
+          rustup update stable
+          rustup target add ${{ matrix.target }}
+
+      - name: Set environment variables for ARM cross-compilation (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest' && matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+          echo "AR_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ar" >> $GITHUB_ENV
+          echo "RANLIB_aarch64_unknown_linux_gnu=aarch64-linux-gnu-ranlib" >> $GITHUB_ENV
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+
+      - name: Build project
+        run: cargo build --release --target ${{ matrix.target }} --verbose
+
+      - name: Test binary
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            binary_path=$(find target/${{ matrix.target }}/release -maxdepth 1 -type f -name "*.exe" | head -n 1)
+          else
+            binary_path=$(find target/${{ matrix.target }}/release -maxdepth 1 -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) | head -n 1)
+          fi
+          if [ -n "$binary_path" ]; then
+            $binary_path --version
+          else
+            echo "No executable binary found."
+            exit 1
+          fi
+        shell: bash
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Package binary
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            binary_path=$(find target/${{ matrix.target }}/release -maxdepth 1 -type f -name "*.exe" | head -n 1)
+            binary_name=$(basename "$binary_path")
+          else
+            binary_path=$(find target/${{ matrix.target }}/release -maxdepth 1 -type f \( -perm -u=x -o -perm -g=x -o -perm -o=x \) | head -n 1)
+            binary_name=$(basename "$binary_path")
+          fi
+          mkdir -p ./release
+          cp "$binary_path" release/"$binary_name"
+          cd release
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            7z a "$binary_name-${{ matrix.target }}.zip" "$binary_name"
+            echo "Packaged file: ./release/$binary_name-${{ matrix.target }}.zip"
+          else
+            tar czvf "$binary_name-${{ matrix.target }}.tar.gz" "$binary_name"
+            echo "Packaged file: ./release/$binary_name-${{ matrix.target }}.tar.gz"
+          fi
+          cd ..
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: |
+            release/*.zip
+            release/*.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          RUSTTARGET: ${{ matrix.target }}
-          ARCHIVE_TYPES: ${{ matrix.archive }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.tar.gz  

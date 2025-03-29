@@ -177,14 +177,14 @@ pub const TEMPLATE: &str = r#"
       "tolerance": 50,
       "idle_timeout": "50m",
       "interrupt_exist_connections": true,
-      "outbounds": []
+      "outbounds": ["{{ALL-TAG}}"]
     },
     {
       "tag": "🚀 手动切换",
       "type": "selector",
       "interrupt_exist_connections": true,
       "default": "",
-      "outbounds": []
+      "outbounds": ["{{ALL-TAG}}"]
     }
   ],
   "route": {

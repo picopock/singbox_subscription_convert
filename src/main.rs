@@ -3,6 +3,7 @@ mod cli;
 mod singbox;
 mod template;
 
+use crate::singbox::common::base::Network;
 use clap::Parser;
 use clash::proxy::Proxy;
 use reqwest::{blocking::Client, header};
@@ -30,13 +31,19 @@ pub fn extra_name(outbound: &Proxy) -> String {
 pub fn transform_outbound_protocol(outbound: &Proxy) -> Outbound {
     match outbound {
         Proxy::Ss(ss) => {
+            let mut network = Network::Tcp;
+            if let Some(is_udp) = ss.udp {
+                if is_udp {
+                    network = Network::Udp
+                }
+            }
             return Outbound::Shadowsocks(shadowsocks::Shadowsocks {
                 tag: ss.name.to_string(),
                 server: ss.server.to_string(),
                 server_port: ss.port,
+                method: ss.cipher.to_string(),
                 password: ss.password.to_string(),
-                bind_interface: ss.interface_name.clone(),
-                routing_mark: ss.routing_mark,
+                network: Some(network),
                 ..shadowsocks::Shadowsocks::default()
             });
         }
@@ -109,6 +116,107 @@ pub fn transform_outbound_protocol(outbound: &Proxy) -> Outbound {
     }
 }
 
+fn process_outbounds(vec: &mut Vec<String>, outbounds: &[String]) {
+    let mut index = 0;
+    while index < vec.len() {
+        let current = &vec[index];
+        if current == "{{ALL-TAG}}" {
+            vec.splice(index..index + 1, outbounds.iter().cloned());
+        } else if current.starts_with("{{") && current.ends_with("}}") {
+            let inner = &current[2..current.len() - 2];
+            let mut exclude_rules: Vec<&str> = Vec::new();
+            let mut include_rules: Vec<&str> = Vec::new();
+
+            if inner.contains("EXCLUDE-TAG:") {
+                let start = inner.find("EXCLUDE-TAG:").unwrap() + "EXCLUDE-TAG:".len();
+                let end = inner[start..]
+                    .find(';')
+                    .unwrap_or_else(|| inner.len() - start);
+                exclude_rules = inner[start..start + end].split(',').collect();
+            }
+
+            if inner.contains("INCLUDE-TAG:") {
+                let start = inner.find("INCLUDE-TAG:").unwrap() + "INCLUDE-TAG:".len();
+                let end = inner[start..]
+                    .find(';')
+                    .unwrap_or_else(|| inner.len() - start);
+                include_rules = inner[start..start + end].split(',').collect();
+            }
+
+            let mut matches = Vec::new();
+            for outbound in outbounds {
+                let should_exclude = exclude_rules.iter().any(|rule| outbound.contains(rule));
+                let should_include = include_rules.is_empty()
+                    || include_rules.iter().any(|rule| outbound.contains(rule));
+
+                if should_include && !should_exclude {
+                    matches.push(outbound.clone());
+                }
+            }
+
+            vec.splice(index..index + 1, matches.into_iter());
+        } else {
+            index += 1;
+        }
+    }
+}
+
+fn process_default(default: &mut Option<String>, outbounds: &[String]) {
+    // 检查 default 是否为 None 且 outbounds 不为空
+    if (default.is_none() || default.as_ref().map_or(false, |s| s.is_empty()))
+        && !outbounds.is_empty()
+    {
+        *default = outbounds.first().cloned();
+    }
+
+    // 如果 default 有值，继续处理
+    if let Some(default_rule) = default.as_mut() {
+        if default_rule.starts_with("{{") && default_rule.ends_with("}}") {
+            let inner = &default_rule[2..default_rule.len() - 2];
+            let mut exclude_rules: Vec<&str> = Vec::new();
+            let mut include_rules: Vec<&str> = Vec::new();
+
+            // 安全地解析 EXCLUDE-TAG 规则
+            if let Some(start_index) = inner.find("EXCLUDE-TAG:") {
+                let start = start_index + "EXCLUDE-TAG:".len();
+                if let Some(end_index) = inner[start..].find(';') {
+                    let end = start + end_index;
+                    exclude_rules = inner[start..end].split(',').collect();
+                } else {
+                    exclude_rules = inner[start..].split(',').collect();
+                }
+            }
+
+            // 安全地解析 INCLUDE-TAG 规则
+            if let Some(start_index) = inner.find("INCLUDE-TAG:") {
+                let start = start_index + "INCLUDE-TAG:".len();
+                if let Some(end_index) = inner[start..].find(';') {
+                    let end = start + end_index;
+                    include_rules = inner[start..end].split(',').collect();
+                } else {
+                    include_rules = inner[start..].split(',').collect();
+                }
+            }
+
+            let mut matches = Vec::new();
+            for outbound in outbounds {
+                let should_exclude = exclude_rules.iter().any(|rule| outbound.contains(rule));
+                let should_include = include_rules.is_empty()
+                    || include_rules.iter().any(|rule| outbound.contains(rule));
+
+                if should_include && !should_exclude {
+                    matches.push(outbound.clone());
+                }
+            }
+
+            // 如果有匹配项，更新 default
+            if !matches.is_empty() {
+                *default = Some(matches[0].clone());
+            }
+        }
+    }
+}
+
 fn main() {
     let mut args: cli::Args = cli::Args::parse();
     args.url.query_pairs_mut().append_pair("flag", "clash");
@@ -148,10 +256,7 @@ fn main() {
     for outbound in &mut singbox_config.outbounds {
         // update urltest outbounds with outbound_tags
         if let Outbound::Urltest(Urltest { outbounds, .. }) = outbound {
-            if outbounds.is_empty() {
-                // 修改 outbounds 的值
-                *outbounds = outbound_tags.clone();
-            }
+            process_outbounds(outbounds, &outbound_tags);
         }
 
         // update selector outbounds with outbound_tags
@@ -159,11 +264,8 @@ fn main() {
             outbounds, default, ..
         }) = outbound
         {
-            if outbounds.is_empty() {
-                // 修改 outbounds 的值
-                *outbounds = outbound_tags.clone();
-                *default = Some(outbound_tags[0].clone());
-            }
+            process_default(default, &outbound_tags);
+            process_outbounds(outbounds, &outbound_tags);
         }
     }
 

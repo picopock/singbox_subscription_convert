@@ -2,9 +2,9 @@
 
 # singbox_subscription_convert
 
-A tools for partially converting clash subscription to singbox config.
+A tools for converting clash subscription to singbox config.
 
-> Note: Only support vmess protocol convert at now.
+> Note: Only test vmess and ss protocol.
 
 ## Usage
 
@@ -26,5 +26,64 @@ subscription_convert <subscribe address> [-t <template path>] [-o <output path>]
 
 ## Subscription Update Rules
 
-The tool only modifies the outbounds configuration.  
-It fills the outbounds field for the urltest type configuration and fills the outbounds and default fields for the selector type configuration. The default field takes the first subscription tag by default.
+Currently, the tool only modifies the items of type `urltest` and `selector` in the `outbounds` configuration of the template, and appends the nodes of all subscriptions to the end of `outbounds`.
+
+For the `urltest` type, modify the `outbounds` field according to the interpolation rules.
+For the `selector` type, modify the `outbounds` and `default` fields according to the interpolation rules.
+
+Traverse the `outbounds` fields of the corresponding types:
+  If there is a `{{ALL-TAG}} `field, fill in all the node names of the obtained subscription at the current position, replacing the placeholder rule field.
+  If there are interpolation rules such as `{{EXCLUDE-TAG:xxx,yyy,zzz}}`, `{{INCLUDE-TAG:xxx,yyy,zzz}}`, or `{{EXCLUDE-TAG:xxx,yyy,zzz;INCLUDE-TAG:xxx,yyy,zzz}}`, perform fuzzy matching:
+    `EXCLUDE-TAG`: Represents an exclusion rule, followed by fuzzy matching rules separated by `,`. The fuzzy matching rules are in an OR relationship.
+    `INCLUDE-TAG`: Represents an inclusion rule, followed by fuzzy matching rules separated by `,`. The fuzzy matching rules are in an OR relationship.
+    If `EXCLUDE-TAG` and `INCLUDE-TAG` exist simultaneously, they need to be separated by `;` without regard to order. The two rules are in an AND relationship and need to be satisfied simultaneously.
+
+An example configuration is as follows:
+
+```json
+{
+  "outbounds": [
+    {
+      "tag": "DIRECT",
+      "type": "direct"
+    },
+    {
+      "tag": "🚀 Select",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "default": "♻️ AutoSelect",
+      "outbounds": [
+        "♻️ AutoSelect",
+        "🚀 ManualSelect"
+      ]
+    },
+    {
+      "tag": "♻️ AutoSelect",
+      "type": "urltest",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "180s",
+      "tolerance": 50,
+      "idle_timeout": "5m",
+      "interrupt_exist_connections": true,
+      "outbounds": ["{{ALL-TAG}}"]
+    },
+    {
+      "tag": "🚀 ManualSelect",
+      "type": "selector",
+      "interrupt_exist_connections": true,
+      "default": "{{INCLUDE-TAG:xxx,yyy,zzz}}",
+      "outbounds": ["{{ALL-TAG}}"]
+    },
+    {
+      "type": "urltest",
+      "tag": "🎵 TikTok",
+      "url": "https://www.gstatic.com/generate_204",
+      "interval": "30s",
+      "tolerance": 50,
+      "idle_timeout": "5m",
+      "interrupt_exist_connections": true,
+      "outbounds": ["{{EXCLUDE-TAG:aaa,bbb,ccc;INCLUDE-TAG:xxx,yyy,zzz}}"]
+    }
+  ]
+}
+```

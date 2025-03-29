@@ -21,7 +21,7 @@ pub struct Trojan {
     pub skip_cert_verify: Option<bool>,
     #[serde(rename = "grpc-opts")]
     pub grpc_opts: Option<GrpcOpts>,
-    #[serde(rename = "grpc-opts")]
+    #[serde(rename = "ws_opts")]
     pub ws_opts: Option<WsOpts>,
 }
 

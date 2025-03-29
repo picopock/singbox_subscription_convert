@@ -9,7 +9,7 @@ pub struct Shadowsocks {
     pub name: String,
     pub server: String,
     pub port: u16,
-    pub password: u16,
+    pub password: String,
     pub cipher: String,
     pub udp: Option<bool>,
     #[serde(rename = "interface-name")]
