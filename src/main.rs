@@ -3,7 +3,6 @@ mod cli;
 mod singbox;
 mod template;
 
-use crate::singbox::common::base::Network;
 use clap::Parser;
 use clash::proxy::Proxy;
 use reqwest::{blocking::Client, header};
@@ -31,19 +30,12 @@ pub fn extra_name(outbound: &Proxy) -> String {
 pub fn transform_outbound_protocol(outbound: &Proxy) -> Outbound {
     match outbound {
         Proxy::Ss(ss) => {
-            let mut network = Network::Tcp;
-            if let Some(is_udp) = ss.udp {
-                if is_udp {
-                    network = Network::Udp
-                }
-            }
             return Outbound::Shadowsocks(shadowsocks::Shadowsocks {
                 tag: ss.name.to_string(),
                 server: ss.server.to_string(),
                 server_port: ss.port,
                 method: ss.cipher.to_string(),
                 password: ss.password.to_string(),
-                network: Some(network),
                 ..shadowsocks::Shadowsocks::default()
             });
         }
