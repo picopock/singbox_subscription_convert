@@ -7,13 +7,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "kebab-case")]
 pub struct Config {
-    pub mixed_port: u16,
-    pub allow_lan: bool,
-    pub bind_address: String,
-    pub mode: Mode,
-    pub log_level: LogLevel,
-    pub external_controller: String,
-    pub dns: dns::DNS,
+    pub mixed_port: Option<u16>,
+    pub allow_lan: Option<bool>,
+    pub bind_address: Option<String>,
+    pub mode: Option<Mode>,
+    pub log_level: Option<LogLevel>,
+    pub external_controller: Option<String>,
+    pub dns: Option<dns::DNS>,
     pub proxies: Vec<proxy::Proxy>,
     pub proxy_groups: Vec<proxy_group::ProxyGroup>,
     pub rules: Vec<String>,
