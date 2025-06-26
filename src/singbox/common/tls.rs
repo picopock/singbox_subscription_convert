@@ -1,4 +1,4 @@
-use super::base::Strategy;
+use super::base::{SingleOrMultipleValue, Strategy};
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 
@@ -78,8 +78,9 @@ pub struct Ech {
 pub struct Reality {
     enabled: Option<bool>,
     handshake: Option<RealityHandshake>,
+    public_key: Option<String>,
     private_key: Option<String>,
-    short_id: Option<Vec<String>>,
+    short_id: Option<SingleOrMultipleValue<String>>,
     max_time_difference: Option<String>,
 }
 
